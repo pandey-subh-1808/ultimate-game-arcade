@@ -1,0 +1,953 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Ultimate Arcade Hub</title>
+    <!-- Google Pixel & Clean Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        * {
+            box-sizing: border-box;
+            user-select: none;
+            -webkit-user-select: none;
+            margin: 0;
+            padding: 0;
+        }
+        body, html {
+            width: 100%;
+            height: 100%;
+            background-color: #0b0f19;
+            color: #f1f2f6;
+            font-family: 'Inter', sans-serif;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            touch-action: none;
+        }
+
+        .arcade-cabinet {
+            position: relative;
+            width: 95vw;
+            height: 92vh;
+            max-width: 380px;
+            max-height: 640px;
+            background: #111827;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 15px 35px rgba(0,0,0,0.9);
+            border-radius: 20px;
+            overflow: hidden;
+            border: 1px solid #1f293d;
+            touch-action: none;
+        }
+
+        canvas {
+            display: block;
+            width: 100%;
+            flex-grow: 1;
+            background: #0d111a;
+            touch-action: none;
+        }
+
+        .screen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: #111827;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-start;
+            padding: 16px;
+            z-index: 20;
+            overflow-y: auto;
+        }
+        .hidden {
+            display: none !important;
+        }
+
+        .pixel-text, h1 {
+            font-family: 'Press Start 2P', monospace;
+            text-transform: uppercase;
+        }
+
+        h1 {
+            font-size: 13px;
+            margin-bottom: 4px;
+            letter-spacing: 1px;
+            color: #10b981;
+            text-align: center;
+            text-shadow: 0 0 12px rgba(16, 185, 129, 0.4);
+        }
+
+        .subtitle-text {
+            font-size: 10px;
+            color: #9ca3af;
+            text-align: center;
+            line-height: 1.4;
+            margin-bottom: 10px;
+            padding: 0 4px;
+        }
+
+        .section-title {
+            font-size: 9px;
+            color: #9ca3af;
+            margin: 6px 0 3px 0;
+            align-self: flex-start;
+            width: 100%;
+            text-align: left;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .btn-group {
+            display: flex;
+            gap: 5px;
+            width: 100%;
+            margin-bottom: 4px;
+            flex-wrap: wrap;
+        }
+
+        .option-btn {
+            flex: 1;
+            min-width: 55px;
+            padding: 7px 4px;
+            background: #1a2234;
+            border: 2px solid transparent;
+            color: #d1d5db;
+            border-radius: 10px;
+            font-size: 9px;
+            font-weight: 600;
+            cursor: pointer;
+            text-align: center;
+            transition: all 0.2s ease;
+        }
+        .option-btn.active {
+            border-color: #10b981;
+            background: #1f293d;
+            color: #10b981;
+            box-shadow: 0 0 10px rgba(16, 185, 129, 0.2);
+        }
+
+        .start-btn {
+            margin-top: 8px;
+            width: 100%;
+            padding: 12px;
+            background: #10b981;
+            color: #064e3b;
+            border: none;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 800;
+            cursor: pointer;
+            box-shadow: 0 4px 15px rgba(16, 185, 129, 0.4);
+            text-transform: uppercase;
+        }
+
+        .hud {
+            height: 48px;
+            background: #1a2234;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 12px;
+            border-bottom: 1px solid #2a344a;
+            z-index: 10;
+        }
+        .hud-item { display: flex; align-items: center; gap: 4px; }
+        .hud-label { font-size: 8px; font-weight: 700; color: #9ca3af; }
+        .hud-value { font-size: 11px; font-weight: 700; }
+        .hud-score { color: #10b981; }
+
+        .pause-btn, .menu-back-btn {
+            background: #253047;
+            border: 1px solid #374151;
+            padding: 5px 8px;
+            border-radius: 8px;
+            color: #f3f4f6;
+            font-size: 9px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+
+        .panel-box {
+            width: 100%;
+            background: #151c2c;
+            border: 1px solid #222d42;
+            border-radius: 12px;
+            padding: 8px;
+            margin-bottom: 6px;
+            max-height: 95px;
+            overflow-y: auto;
+        }
+        .panel-title {
+            font-size: 9px;
+            color: #10b981;
+            font-weight: bold;
+            margin-bottom: 4px;
+            text-align: center;
+            letter-spacing: 0.5px;
+        }
+        .lb-row, .ach-row {
+            display: flex;
+            justify-content: space-between;
+            font-size: 9px;
+            padding: 3px 0;
+            border-bottom: 1px solid #1f293d;
+            color: #d1d5db;
+        }
+
+        .input-group { display: flex; gap: 6px; width: 100%; margin-top: 4px; }
+        .name-input {
+            flex: 1; background: #1a2234; border: 1px solid #374151;
+            border-radius: 10px; padding: 8px; color: #fff; font-size: 10px; outline: none;
+        }
+        
+        .game-over-card {
+            background: #161e2e;
+            border: 1px solid #233047;
+            border-radius: 16px;
+            padding: 12px;
+            width: 100%;
+            margin-bottom: 12px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        .game-over-row {
+            display: flex;
+            justify-content: space-between;
+            font-size: 11px;
+            color: #9ca3af;
+        }
+        .game-over-val {
+            font-weight: bold;
+            color: #fff;
+        }
+    </style>
+</head>
+<body>
+
+<div class="arcade-cabinet">
+    
+    <!-- MAIN SELECTION MENU -->
+    <div id="hub-screen" class="screen" style="justify-content: center;">
+        <div style="font-size: 28px; margin-bottom: 8px;">🕹️</div>
+        <h1>ARCADE HUB</h1>
+        <div class="subtitle-text">Select your game experience!</div>
+        
+        <button class="start-btn pixel-text" onclick="selectGame('snake')" style="margin-bottom: 10px; background: #10b981; color: #064e3b;">🐍 SNAKE ARCADE</button>
+        <button class="start-btn pixel-text" onclick="selectGame('minetactoe')" style="margin-bottom: 10px; background: #ef4444; color: #fff;">💣 MINE-TAC-TOE</button>
+        <button class="start-btn pixel-text" onclick="selectGame('tictactoe')" style="background: #3b82f6; color: #fff;">❌ CLASSIC TIC-TAC-TOE</button>
+    </div>
+
+    <!-- HUD BAR -->
+    <div id="hud" class="hud hidden">
+        <div class="hud-item">
+            <span class="hud-label">SCORE:</span>
+            <span id="score-text" class="hud-value hud-score">0</span>
+        </div>
+        <div class="hud-item">
+            <span class="hud-label">SPEED:</span>
+            <span id="speed-multiplier-text" class="hud-value" style="color: #ec4899;">1.0x</span>
+        </div>
+        <div class="hud-item">
+            <span class="hud-label">BUFF:</span>
+            <span id="status-buff" class="hud-value" style="color: #f59e0b; font-size: 8px;">NONE</span>
+        </div>
+        <button class="menu-back-btn" onclick="returnToHub()">🏠</button>
+        <button id="pause-btn" class="pause-btn hidden" onclick="togglePause()">PAUSE</button>
+    </div>
+
+    <canvas id="gameCanvas"></canvas>
+
+    <!-- SNAKE ARCADE CONFIG MENU -->
+    <div id="snake-menu" class="screen hidden">
+        <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px;">
+            <div style="background: #10b981; color: #064e3b; padding: 4px 8px; border-radius: 8px; font-weight: bold; font-size: 10px;">🐍</div>
+            <h1 class="pixel-text" style="margin: 0;">SNAKE ARCADE</h1>
+        </div>
+        <div class="subtitle-text" style="margin-bottom: 6px;">Ultimate Edition</div>
+        
+        <div class="panel-box">
+            <div class="panel-title">🏆 TOP PLAYERS</div>
+            <div id="menu-leaderboard-list">No scores yet</div>
+        </div>
+
+        <div class="panel-box" style="max-height: 90px;">
+            <div class="panel-title">🏅 ACHIEVEMENTS</div>
+            <div id="menu-achievements-list"></div>
+        </div>
+        
+        <div class="section-title">GAME MODE</div>
+        <div class="btn-group" id="mode-group">
+            <button class="option-btn" data-mode="Normal">Normal</button>
+            <button class="option-btn active" data-mode="Wrap">Wrap</button>
+            <button class="option-btn" data-mode="Trap" style="color: #ef4444;">Trap (2x)</button>
+        </div>
+
+        <div class="section-title">SNAKE STYLE</div>
+        <div class="btn-group" id="style-group">
+            <button class="option-btn active" data-style="Green" data-color="#10b981">Green</button>
+            <button class="option-btn" data-style="Cyan" data-color="#06b6d4">Cyan</button>
+            <button class="option-btn" data-style="Pink" data-color="#ec4899">Pink</button>
+            <button class="option-btn" data-style="Cute Eyes" data-color="#f59e0b">Cute Eyes</button>
+        </div>
+
+        <div class="section-title">BASE SPEED</div>
+        <div class="btn-group" id="speed-group">
+            <button class="option-btn" data-speed="120">Slow</button>
+            <button class="option-btn active" data-speed="80">Normal</button>
+            <button class="option-btn" data-speed="55">Fast</button>
+            <button class="option-btn" data-speed="35" style="color: #ef4444;">Turbo</button>
+        </div>
+
+        <div class="section-title">BACKGROUND THEME</div>
+        <div class="btn-group" id="theme-group">
+            <button class="option-btn active" data-theme="Obsidian" data-bg="#0d111a" data-grid="#161f30">Obsidian</button>
+            <button class="option-btn" data-theme="Cyberpunk" data-bg="#1a0b2e" data-grid="#3a1c5c">Cyberpunk</button>
+            <button class="option-btn" data-theme="Emerald" data-bg="#062419" data-grid="#0c4a34">Emerald</button>
+            <button class="option-btn" data-theme="Sunset" data-bg="#260f1b" data-grid="#4d1b32">Sunset</button>
+            <button class="option-btn" data-theme="Ocean" data-bg="#0b1e36" data-grid="#14365d">Ocean</button>
+        </div>
+
+        <div class="input-group">
+            <input type="text" id="setup-player-name" class="name-input" placeholder="Enter Your Player Name" maxlength="12">
+        </div>
+
+        <button id="start-btn" class="start-btn pixel-text" onclick="startSnakeGame()">START GAME</button>
+        <button class="option-btn" style="margin-top: 6px; width: 100%; padding: 8px;" onclick="returnToHub()">BACK TO HUB</button>
+    </div>
+
+    <!-- OVERLAY SCREEN (PAUSE / RETRO GAME OVER) -->
+    <div id="overlay-screen" class="screen hidden" style="justify-content: center;">
+        <div id="game-over-header" style="text-align: center; margin-bottom: 10px;">
+            <div style="font-size: 28px; margin-bottom: 4px;">☠️</div>
+            <h1 id="overlay-title" class="pixel-text" style="color: #ec4899; font-size: 16px;">GAME OVER</h1>
+            <p id="overlay-subtitle" style="color: #9ca3af; font-size: 10px; margin-top: 4px;">You crashed into the wall!</p>
+        </div>
+
+        <div class="game-over-card">
+            <div class="game-over-row">
+                <span>Final Score</span>
+                <span id="final-score-val" class="game-over-val" style="color: #10b981;">0</span>
+            </div>
+            <div class="game-over-row">
+                <span>Max Speed Reached</span>
+                <span id="max-speed-val" class="game-over-val" style="color: #ec4899;">1.0x</span>
+            </div>
+            <div class="game-over-row">
+                <span>High Score</span>
+                <span id="high-score-val" class="game-over-val" style="color: #f59e0b;">0</span>
+            </div>
+        </div>
+
+        <div class="panel-box" style="width: 100%;">
+            <div class="panel-title">🏆 TOP PLAYERS</div>
+            <div id="overlay-leaderboard-list">No scores yet</div>
+        </div>
+
+        <button id="overlay-action-btn" class="start-btn pixel-text" style="margin-top: 10px; background: #10b981; color: #064e3b;">🔄 PLAY AGAIN</button>
+        <button class="option-btn" style="margin-top: 6px; width: 100%; padding: 8px;" onclick="returnToHub()">QUIT TO HUB</button>
+    </div>
+
+</div>
+
+<script>
+    const canvas = document.getElementById("gameCanvas");
+    const ctx = canvas.getContext("2d");
+    let currentGame = null;
+    let activeInterval = null;
+
+    function resizeCanvas() {
+        const container = canvas.parentElement;
+        canvas.width = container.clientWidth || 360;
+        canvas.height = (container.clientHeight || 640) - 48;
+        if(currentGame === 'snake') {
+            resizeSnakeColsRows();
+        }
+    }
+    window.addEventListener("resize", resizeCanvas);
+    resizeCanvas();
+
+    function returnToHub() {
+        if(activeInterval) clearInterval(activeInterval);
+        document.getElementById("hub-screen").classList.remove("hidden");
+        document.getElementById("hud").classList.add("hidden");
+        document.getElementById("snake-menu").classList.add("hidden");
+        document.getElementById("overlay-screen").classList.add("hidden");
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+    }
+
+    function selectGame(type) {
+        document.getElementById("hub-screen").classList.add("hidden");
+        document.getElementById("hud").classList.remove("hidden");
+        resizeCanvas();
+
+        if(type === 'snake') {
+            currentGame = 'snake';
+            document.getElementById("pause-btn").classList.remove("hidden");
+            document.getElementById("snake-menu").classList.remove("hidden");
+            renderPanels();
+        } else if(type === 'minetactoe') {
+            currentGame = 'minetactoe';
+            document.getElementById("pause-btn").classList.add("hidden");
+            startMineTicTacToe();
+        } else if(type === 'tictactoe') {
+            currentGame = 'tictactoe';
+            document.getElementById("pause-btn").classList.add("hidden");
+            startClassicTicTacToe();
+        }
+    }
+
+
+    /* ==========================================================
+       ROUNDED SNAKE ARCADE WITH EXACT STRICT BOUNDS
+       ========================================================== */
+    const BLOCK_SIZE = 20;
+    let cols = 16, rows = 22;
+
+    function resizeSnakeColsRows() {
+        const container = canvas.parentElement;
+        let cWidth = container.clientWidth || 360;
+        let cHeight = (container.clientHeight || 640) - 48;
+        
+        cols = Math.max(10, Math.floor(cWidth / BLOCK_SIZE));
+        rows = Math.max(12, Math.floor(cHeight / BLOCK_SIZE));
+        
+        // Strictly fit Canvas dimensions to full integer block boundaries
+        canvas.width = cols * BLOCK_SIZE;
+        canvas.height = rows * BLOCK_SIZE;
+    }
+
+    let currentMode = "Wrap";
+    let snakeColor = "#10b981";
+    let snakeStyle = "Green";
+    let baseSpeed = 80;
+    let currentIntervalSpeed = 80;
+    let themeBg = "#0d111a";
+    let themeGrid = "#161f30";
+
+    const STORAGE_KEY = "snake_arcade_live_v1";
+    const ACHIEVEMENTS_KEY = "snake_arcade_achv_v1";
+
+    let leaderboard = [
+        { name: "Subh", score: 5 }
+    ];
+    try {
+        let savedData = localStorage.getItem(STORAGE_KEY);
+        if (savedData) {
+            let parsed = JSON.parse(savedData);
+            if (Array.isArray(parsed) && parsed.length > 0) leaderboard = parsed;
+        }
+    } catch (e) {}
+
+    // EXPANDED ACHIEVEMENTS LIST
+    let achievements = JSON.parse(localStorage.getItem(ACHIEVEMENTS_KEY)) || {
+        firstBite: { name: "First Bite", unlocked: false },
+        snakeMaster: { name: "Snake Master (20pts)", unlocked: false },
+        centipede: { name: "Centipede (25 Segments)", unlocked: false },
+        speedDemon: { name: "Speed Demon (Turbo)", unlocked: false },
+        powerHungry: { name: "Power Hungry", unlocked: false },
+        trapSurvivor: { name: "Trap Survivor (10pts)", unlocked: false },
+        centuryClub: { name: "Century Club (50pts)", unlocked: false },
+        warpRunner: { name: "Warp Runner (15pts)", unlocked: false }
+    };
+
+    function saveAchievements() {
+        localStorage.setItem(ACHIEVEMENTS_KEY, JSON.stringify(achievements));
+    }
+
+    function renderPanels() {
+        let lbHtml = leaderboard.length === 0 ? '<div class="lb-row" style="justify-content: center; color: #6b7280;">No scores yet</div>' :
+            leaderboard.slice(0, 5).map((e, i) => `<div class="lb-row"><span>${i+1}. ${e.name}</span><span>${e.score} pts</span></div>`).join('');
+        document.getElementById("menu-leaderboard-list").innerHTML = lbHtml;
+        document.getElementById("overlay-leaderboard-list").innerHTML = lbHtml;
+
+        let achHtml = Object.values(achievements).map(a => `<div class="ach-row"><span>${a.name}</span><span style="color:${a.unlocked ? '#10b981':'#6b7280'}">${a.unlocked ? 'Unlocked':'Locked'}</span></div>`).join('');
+        document.getElementById("menu-achievements-list").innerHTML = achHtml;
+    }
+
+    document.querySelectorAll("#mode-group .option-btn").forEach(btn => {
+        btn.addEventListener("click", () => {
+            document.querySelectorAll("#mode-group .option-btn").forEach(b => b.classList.remove("active"));
+            btn.classList.add("active");
+            currentMode = btn.getAttribute("data-mode");
+        });
+    });
+
+    document.querySelectorAll("#style-group .option-btn").forEach(btn => {
+        btn.addEventListener("click", () => {
+            document.querySelectorAll("#style-group .option-btn").forEach(b => b.classList.remove("active"));
+            btn.classList.add("active");
+            snakeColor = btn.getAttribute("data-color");
+            snakeStyle = btn.getAttribute("data-style");
+        });
+    });
+
+    document.querySelectorAll("#speed-group .option-btn").forEach(btn => {
+        btn.addEventListener("click", () => {
+            document.querySelectorAll("#speed-group .option-btn").forEach(b => b.classList.remove("active"));
+            btn.classList.add("active");
+            baseSpeed = parseInt(btn.getAttribute("data-speed"));
+            if (baseSpeed === 35) achievements.speedDemon.unlocked = true;
+            saveAchievements();
+        });
+    });
+
+    document.querySelectorAll("#theme-group .option-btn").forEach(btn => {
+        btn.addEventListener("click", () => {
+            document.querySelectorAll("#theme-group .option-btn").forEach(b => b.classList.remove("active"));
+            btn.classList.add("active");
+            themeBg = btn.getAttribute("data-bg");
+            themeGrid = btn.getAttribute("data-grid");
+        });
+    });
+
+    let snake = [], traps = [], powerUp = null, powerUpLife = 0, activeBuff = null, buffTimer = 0;
+    let dx = BLOCK_SIZE, dy = 0, food = { x: 0, y: 0 }, score = 0, isPaused = false, isGameOver = false;
+    const powerUpTypes = ['gem', 'ghost', 'doubler', 'megaFruit'];
+
+    function getFoodColor() {
+        if (snakeColor === "#10b981") return "#ef4444"; 
+        if (snakeColor === "#06b6d4") return "#f59e0b"; 
+        if (snakeColor === "#ec4899") return "#10b981"; 
+        return "#ec4899"; 
+    }
+
+    function startSnakeGame() {
+        document.getElementById("snake-menu").classList.add("hidden");
+        document.getElementById("hud").classList.remove("hidden");
+        document.getElementById("overlay-screen").classList.add("hidden");
+
+        resizeSnakeColsRows();
+        const startX = Math.floor(cols / 2) * BLOCK_SIZE;
+        const startY = Math.floor(rows / 2) * BLOCK_SIZE;
+        snake = [{ x: startX - (BLOCK_SIZE * 2), y: startY }, { x: startX - BLOCK_SIZE, y: startY }, { x: startX, y: startY }];
+        traps = []; powerUp = null; powerUpLife = 0; activeBuff = null; buffTimer = 0;
+        dx = BLOCK_SIZE; dy = 0; score = 0; isPaused = false; isGameOver = false;
+
+        currentIntervalSpeed = baseSpeed;
+        updateSnakeHUD();
+        spawnSnakeFood();
+        if (currentMode === "Trap") spawnSnakeTraps();
+        resetSnakeGameLoop();
+    }
+
+    function resetSnakeGameLoop() {
+        if (activeInterval) clearInterval(activeInterval);
+        activeInterval = setInterval(snakeMainLoop, currentIntervalSpeed);
+    }
+
+    function spawnSnakeFood() {
+        // Guaranteed inside cols - 1 and rows - 1 grid
+        food.x = Math.floor(Math.random() * cols) * BLOCK_SIZE;
+        food.y = Math.floor(Math.random() * rows) * BLOCK_SIZE;
+
+        if (Math.random() < 0.35 && !powerUp) {
+            powerUp = {
+                x: Math.floor(Math.random() * cols) * BLOCK_SIZE,
+                y: Math.floor(Math.random() * rows) * BLOCK_SIZE,
+                type: powerUpTypes[Math.floor(Math.random() * powerUpTypes.length)]
+            };
+            powerUpLife = 80;
+        }
+    }
+
+    function spawnSnakeTraps() {
+        traps = [];
+        while (traps.length < 5) {
+            let tx = Math.floor(Math.random() * cols) * BLOCK_SIZE;
+            let ty = Math.floor(Math.random() * rows) * BLOCK_SIZE;
+            if (!snake.some(s => s.x === tx && s.y === ty)) traps.push({ x: tx, y: ty });
+        }
+    }
+
+    function snakeMainLoop() {
+        if (isPaused || isGameOver) return;
+        updateSnake();
+        drawSnake();
+    }
+
+    function updateSnake() {
+        if (buffTimer > 0) {
+            buffTimer--;
+            if (buffTimer === 0) activeBuff = null;
+        }
+        if (powerUp) {
+            powerUpLife--;
+            if (powerUpLife <= 0) powerUp = null;
+        }
+
+        let head = { x: snake[snake.length - 1].x + dx, y: snake[snake.length - 1].y + dy };
+
+        if (currentMode === "Wrap" || currentMode === "Special") {
+            if (head.x < 0) head.x = (cols - 1) * BLOCK_SIZE; 
+            else if (head.x >= canvas.width) head.x = 0;
+            
+            if (head.y < 0) head.y = (rows - 1) * BLOCK_SIZE; 
+            else if (head.y >= canvas.height) head.y = 0;
+        } else {
+            if (head.x < 0 || head.x >= canvas.width || head.y < 0 || head.y >= canvas.height) {
+                triggerSnakeGameOver("You crashed into the wall!"); return;
+            }
+        }
+
+        if (activeBuff !== 'ghost' && snake.some(seg => seg.x === head.x && seg.y === head.y)) {
+            triggerSnakeGameOver("You crashed into yourself!"); return;
+        }
+        if (currentMode === "Trap" && traps.some(t => t.x === head.x && t.y === head.y)) {
+            triggerSnakeGameOver("You hit a spike trap!"); return;
+        }
+
+        snake.push(head);
+
+        if (head.x === food.x && head.y === food.y) {
+            let pts = (currentMode === "Trap") ? 2 : 1;
+            if (activeBuff === 'doubler') pts *= 2;
+            score += pts;
+            achievements.firstBite.unlocked = true;
+
+            // Check Mode Achievements
+            if (currentMode === "Trap" && score >= 10) achievements.trapSurvivor.unlocked = true;
+            if ((currentMode === "Wrap" || currentMode === "Special") && score >= 15) achievements.warpRunner.unlocked = true;
+
+            let speedFactor = 1 + Math.floor(score / 3) * 0.05; 
+            let targetSpeed = Math.max(25, Math.floor(baseSpeed / speedFactor));
+            if (targetSpeed !== currentIntervalSpeed) {
+                currentIntervalSpeed = targetSpeed;
+                resetSnakeGameLoop();
+            }
+
+            spawnSnakeFood();
+        } else if (powerUp && head.x === powerUp.x && head.y === powerUp.y) {
+            activeBuff = powerUp.type;
+            achievements.powerHungry.unlocked = true;
+            buffTimer = 60;
+            if (activeBuff === 'gem') score += 5;
+            if (activeBuff === 'megaFruit') score += 10;
+            powerUp = null;
+        } else {
+            snake.shift();
+        }
+
+        if (score >= 20) achievements.snakeMaster.unlocked = true;
+        if (score >= 50) achievements.centuryClub.unlocked = true;
+        if (snake.length >= 25) achievements.centipede.unlocked = true;
+        saveAchievements();
+        updateSnakeHUD();
+    }
+
+    function updateSnakeHUD() {
+        document.getElementById("score-text").innerText = score;
+        let currentMultiplier = (baseSpeed / currentIntervalSpeed).toFixed(1);
+        document.getElementById("speed-multiplier-text").innerText = `${currentMultiplier}x`;
+        document.getElementById("status-buff").innerText = activeBuff ? `${activeBuff.toUpperCase()}` : "NONE";
+    }
+
+    function drawSnake() {
+        ctx.fillStyle = themeBg; ctx.fillRect(0, 0, canvas.width, canvas.height);
+        
+        ctx.strokeStyle = themeGrid;
+        for (let x = 0; x <= canvas.width; x += BLOCK_SIZE) { ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, canvas.height); ctx.stroke(); }
+        for (let y = 0; y <= canvas.height; y += BLOCK_SIZE) { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(canvas.width, y); ctx.stroke(); }
+
+        if (currentMode === "Trap") {
+            ctx.fillStyle = "#ef4444";
+            traps.forEach(t => {
+                ctx.beginPath();
+                ctx.arc(t.x + BLOCK_SIZE/2, t.y + BLOCK_SIZE/2, BLOCK_SIZE/2 - 2, 0, Math.PI * 2);
+                ctx.fill();
+            });
+        }
+
+        // Render Food
+        ctx.fillStyle = getFoodColor();
+        ctx.beginPath();
+        ctx.arc(food.x + BLOCK_SIZE/2, food.y + BLOCK_SIZE/2, BLOCK_SIZE/2 - 2, 0, Math.PI * 2);
+        ctx.fill();
+        
+        // Render PowerUp
+        if (powerUp) {
+            ctx.fillStyle = activeBuff === 'ghost' ? "#06b6d4" : "#f59e0b"; 
+            ctx.beginPath();
+            ctx.arc(powerUp.x + BLOCK_SIZE/2, powerUp.y + BLOCK_SIZE/2, BLOCK_SIZE/2 - 1, 0, Math.PI * 2);
+            ctx.fill();
+        }
+
+        // Render Snake
+        snake.forEach((seg, index) => {
+            let isHead = (index === snake.length - 1);
+            ctx.fillStyle = isHead ? snakeColor : "#059669";
+            if (activeBuff === 'ghost') ctx.fillStyle = "rgba(6, 182, 212, 0.6)";
+
+            ctx.beginPath();
+            ctx.arc(seg.x + BLOCK_SIZE/2, seg.y + BLOCK_SIZE/2, BLOCK_SIZE/2 - 1, 0, Math.PI * 2);
+            ctx.fill();
+
+            if (isHead && snakeStyle === "Cute Eyes") {
+                ctx.fillStyle = "#ffffff";
+                ctx.beginPath(); ctx.arc(seg.x + 6, seg.y + 6, 2.5, 0, Math.PI*2); ctx.fill();
+                ctx.beginPath(); ctx.arc(seg.x + 14, seg.y + 6, 2.5, 0, Math.PI*2); ctx.fill();
+                ctx.fillStyle = "#000000";
+                ctx.beginPath(); ctx.arc(seg.x + 6, seg.y + 6, 1.2, 0, Math.PI*2); ctx.fill();
+                ctx.beginPath(); ctx.arc(seg.x + 14, seg.y + 6, 1.2, 0, Math.PI*2); ctx.fill();
+            }
+        });
+    }
+
+    function triggerSnakeGameOver(reason) {
+        isGameOver = true; clearInterval(activeInterval);
+        
+        let playerName = document.getElementById("setup-player-name").value.trim() || "Player";
+        if (score > 0) {
+            leaderboard.push({ name: playerName, score: score, mode: currentMode });
+            leaderboard.sort((a, b) => b.score - a.score);
+            leaderboard = leaderboard.slice(0, 10);
+            try {
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(leaderboard));
+            } catch (e) {}
+        }
+
+        let highestScore = leaderboard.length > 0 ? leaderboard[0].score : score;
+
+        document.getElementById("overlay-title").innerText = "GAME OVER";
+        document.getElementById("overlay-subtitle").innerText = reason;
+        document.getElementById("final-score-val").innerText = score;
+        document.getElementById("max-speed-val").innerText = `${(baseSpeed / currentIntervalSpeed).toFixed(1)}x`;
+        document.getElementById("high-score-val").innerText = Math.max(highestScore, score);
+
+        renderPanels();
+        
+        const actionBtn = document.getElementById("overlay-action-btn");
+        actionBtn.innerText = "🔄 PLAY AGAIN"; actionBtn.onclick = startSnakeGame;
+        document.getElementById("overlay-screen").classList.remove("hidden");
+    }
+
+    function togglePause() {
+        if (currentGame !== 'snake' || isGameOver) return;
+        isPaused = !isPaused;
+        if (isPaused) {
+            document.getElementById("overlay-title").innerText = "PAUSED";
+            document.getElementById("overlay-subtitle").innerText = `Current Score: ${score}`;
+            const actionBtn = document.getElementById("overlay-action-btn");
+            actionBtn.innerText = "▶ RESUME"; actionBtn.onclick = () => { isPaused = false; document.getElementById("overlay-screen").classList.add("hidden"); };
+            document.getElementById("overlay-screen").classList.remove("hidden");
+        } else {
+            document.getElementById("overlay-screen").classList.add("hidden");
+        }
+    }
+
+
+    /* ==========================================================
+       MINE-TAC-TOE (FULLY SEPARATED & NON-CONFUSING ZONES)
+       ========================================================== */
+    let minefield = [], revealed = [], tttBoard = [], hPlayer = "X", hStage = "minesweeper", hWinner = null, hGameOver = false;
+    let classicBoard = [["","",""],["","",""],["","",""]], cPlayer = "X", cWinner = null, cGameOver = false;
+
+    function startMineTicTacToe() {
+        minefield = [[0,0,0],[0,0,0],[0,0,0]]; revealed = [[false,false,false],[false,false,false],[false,false,false]]; tttBoard = [["","",""],["","",""],["","",""]];
+        hPlayer = "X"; hStage = "minesweeper"; hWinner = null; hGameOver = false;
+        let mines = 3;
+        while(mines > 0) {
+            let r = Math.floor(Math.random()*3), c = Math.floor(Math.random()*3);
+            if(minefield[r][c] === 0) { minefield[r][c] = 1; mines--; }
+        }
+        if (activeInterval) clearInterval(activeInterval);
+        activeInterval = setInterval(drawMineTicTacToe, 60);
+    }
+
+    function checkLines(board) {
+        const lines = [[[0,0],[0,1],[0,2]],[[1,0],[1,1],[1,2]],[[2,0],[2,1],[2,2]],[[0,0],[1,0],[2,0]],[[0,1],[1,1],[2,1]],[[0,2],[1,2],[2,2]],[[0,0],[1,1],[2,2]],[[0,2],[1,1],[2,0]]];
+        for(let l of lines) {
+            let [a,b,c] = l;
+            if(board[a[0]][a[1]] && board[a[0]][a[1]] === board[b[0]][b[1]] && board[a[0]][a[1]] === board[c[0]][c[1]]) return board[a[0]][a[1]];
+        }
+        return null;
+    }
+
+    function drawMineTicTacToe() {
+        ctx.fillStyle = "#0d111a"; ctx.fillRect(0,0,canvas.width,canvas.height);
+        document.getElementById("score-text").innerText = `${hPlayer}'s Turn`;
+        document.getElementById("speed-multiplier-text").innerText = "1.0x";
+        document.getElementById("status-buff").innerText = hStage === "minesweeper" ? "STEP 1: SWEEP" : "STEP 2: PLACE";
+
+        let startX = (canvas.width - 195) / 2;
+        
+        // --- 1. MINESWEEPER ZONE (TOP) ---
+        ctx.fillStyle = hStage === "minesweeper" ? "#ef4444" : "#6b7280"; 
+        ctx.font = "bold 9px 'Press Start 2P'"; ctx.textAlign = "center";
+        ctx.fillText(hStage === "minesweeper" ? "👉 1. REVEAL A SAFE MINE" : "1. MINESWEEPER (DONE)", canvas.width/2, 22);
+
+        for(let r=0; r<3; r++) {
+            for(let c=0; c<3; c++) {
+                let x = startX + c * 65, y = 32 + r * 65;
+                ctx.fillStyle = revealed[r][c] ? "#1f293d" : "#374151";
+                
+                ctx.beginPath(); ctx.roundRect(x, y, 60, 60, 10); ctx.fill();
+                ctx.strokeStyle = hStage === "minesweeper" ? "#ef4444" : "#1f293d"; 
+                ctx.lineWidth = hStage === "minesweeper" ? 2 : 1; ctx.stroke();
+
+                if(revealed[r][c] && minefield[r][c] === 1) {
+                    ctx.fillStyle = "#ef4444"; ctx.beginPath(); ctx.arc(x+30, y+30, 12, 0, Math.PI*2); ctx.fill();
+                } else if(revealed[r][c]) {
+                    ctx.fillStyle = "#10b981"; ctx.font = "11px Inter"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+                    ctx.fillText("SAFE", x + 30, y + 30);
+                }
+            }
+        }
+
+        // Visual Divider Line
+        ctx.strokeStyle = "#374151"; ctx.lineWidth = 1;
+        ctx.beginPath(); ctx.moveTo(20, 240); ctx.lineTo(canvas.width - 20, 240); ctx.stroke();
+
+        // --- 2. TIC TAC TOE ZONE (BOTTOM) ---
+        let tY = 270;
+        ctx.fillStyle = hStage === "tictactoe" ? "#3b82f6" : "#6b7280"; 
+        ctx.font = "bold 9px 'Press Start 2P'"; ctx.textAlign = "center";
+        ctx.fillText(hStage === "tictactoe" ? "👉 2. PLACE YOUR MARK" : "2. TIC-TAC-TOE BOARD", canvas.width/2, tY - 12);
+
+        for(let r=0; r<3; r++) {
+            for(let c=0; c<3; c++) {
+                let x = startX + c * 65, y = tY + r * 65;
+                ctx.fillStyle = "#161f30"; 
+                
+                ctx.beginPath(); ctx.roundRect(x, y, 60, 60, 10); ctx.fill();
+                ctx.strokeStyle = hStage === "tictactoe" ? "#3b82f6" : "#1f293d"; 
+                ctx.lineWidth = hStage === "tictactoe" ? 2 : 1; ctx.stroke();
+
+                let val = tttBoard[r][c];
+                if(val) {
+                    ctx.fillStyle = val === "X" ? "#10b981" : "#f59e0b";
+                    ctx.font = "bold 28px Inter"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+                    ctx.fillText(val, x + 30, y + 30);
+                }
+            }
+        }
+
+        if(hGameOver) {
+            ctx.fillStyle = "rgba(11,15,25,0.9)"; ctx.fillRect(0,0,canvas.width,canvas.height);
+            ctx.fillStyle = "#10b981"; ctx.font = "14px 'Press Start 2P'"; ctx.textAlign = "center";
+            ctx.fillText(hWinner ? `${hWinner} WINS!` : "DRAW!", canvas.width/2, canvas.height/2);
+        }
+    }
+
+    function startClassicTicTacToe() {
+        classicBoard = [["","",""],["","",""],["","",""]]; cPlayer = "X"; cWinner = null; cGameOver = false;
+        if (activeInterval) clearInterval(activeInterval);
+        activeInterval = setInterval(drawClassicTTT, 60);
+    }
+
+    function drawClassicTTT() {
+        ctx.fillStyle = "#0d111a"; ctx.fillRect(0,0,canvas.width,canvas.height);
+        document.getElementById("score-text").innerText = `${cPlayer}'s Turn`;
+        document.getElementById("speed-multiplier-text").innerText = "1.0x";
+        document.getElementById("status-buff").innerText = "CLASSIC";
+
+        let startX = (canvas.width - 240) / 2, startY = (canvas.height - 240) / 2;
+        for(let r=0; r<3; r++) {
+            for(let c=0; c<3; c++) {
+                let x = startX + c * 80, y = startY + r * 80;
+                ctx.fillStyle = "#161f30"; 
+                ctx.beginPath(); ctx.roundRect(x, y, 75, 75, 12); ctx.fill();
+                ctx.strokeStyle = "#2a344a"; ctx.lineWidth = 2; ctx.stroke();
+                
+                let val = classicBoard[r][c];
+                if(val) {
+                    ctx.fillStyle = val === "X" ? "#10b981" : "#f59e0b";
+                    ctx.font = "bold 36px Inter"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+                    ctx.fillText(val, x + 37, y + 37);
+                }
+            }
+        }
+        if(cGameOver) {
+            ctx.fillStyle = "rgba(11,15,25,0.9)"; ctx.fillRect(0,0,canvas.width,canvas.height);
+            ctx.fillStyle = "#10b981"; ctx.font = "14px 'Press Start 2P'"; ctx.textAlign = "center";
+            ctx.fillText(cWinner ? `${cWinner} WINS!` : "DRAW!", canvas.width/2, canvas.height/2);
+        }
+    }
+
+
+    /* ==========================================================
+       INPUT CONTROLS (Touch Swipe, Mouse Click & Keyboard Arrows)
+       ========================================================== */
+    canvas.addEventListener('click', (e) => {
+        let rect = canvas.getBoundingClientRect();
+        let mx = e.clientX - rect.left, my = e.clientY - rect.top;
+
+        if(currentGame === 'minetactoe') {
+            if(hGameOver) { startMineTicTacToe(); return; }
+            let startX = (canvas.width - 195) / 2;
+            if(hStage === "minesweeper") {
+                for(let r=0; r<3; r++) {
+                    for(let c=0; c<3; c++) {
+                        let x = startX + c * 65, y = 32 + r * 65;
+                        if(mx >= x && mx <= x+60 && my >= y && my <= y+60 && !revealed[r][c]) {
+                            revealed[r][c] = true;
+                            if(minefield[r][c] === 1) hPlayer = hPlayer === "X" ? "O" : "X";
+                            else hStage = "tictactoe";
+                        }
+                    }
+                }
+            } else if(hStage === "tictactoe") {
+                let tY = 270;
+                for(let r=0; r<3; r++) {
+                    for(let c=0; c<3; c++) {
+                        let x = startX + c * 65, y = tY + r * 65;
+                        if(mx >= x && mx <= x+60 && my >= y && my <= y+60 && tttBoard[r][c] === "") {
+                            tttBoard[r][c] = hPlayer;
+                            hWinner = checkLines(tttBoard);
+                            if(hWinner || tttBoard.flat().every(cell => cell !== "")) hGameOver = true;
+                            else { hPlayer = hPlayer === "X" ? "O" : "X"; hStage = "minesweeper"; }
+                        }
+                    }
+                }
+            }
+        } else if(currentGame === 'tictactoe') {
+            if(cGameOver) { startClassicTicTacToe(); return; }
+            let startX = (canvas.width - 240) / 2, startY = (canvas.height - 240) / 2;
+            for(let r=0; r<3; r++) {
+                for(let c=0; c<3; c++) {
+                    let x = startX + c * 80, y = startY + r * 80;
+                    if(mx >= x && mx <= x+75 && my >= y && my <= y+75 && classicBoard[r][c] === "") {
+                        classicBoard[r][c] = cPlayer;
+                        cWinner = checkLines(classicBoard);
+                        if(cWinner || classicBoard.flat().every(cell => cell !== "")) cGameOver = true;
+                        else cPlayer = cPlayer === "X" ? "O" : "X";
+                    }
+                }
+            }
+        }
+    });
+
+    let touchStartX = 0, touchStartY = 0;
+    window.addEventListener('touchstart', e => { if(e.touches.length > 0) { touchStartX = e.touches[0].clientX; touchStartY = e.touches[0].clientY; } }, { passive: true });
+    window.addEventListener('touchend', e => {
+        if(currentGame !== 'snake' || !touchStartX || !touchStartY || e.changedTouches.length === 0) return;
+        let deltaX = e.changedTouches[0].clientX - touchStartX;
+        let deltaY = e.changedTouches[0].clientY - touchStartY;
+        if(Math.abs(deltaX) > Math.abs(deltaY)) {
+            if(deltaX > 15 && dx === 0) { dx = BLOCK_SIZE; dy = 0; }
+            else if(deltaX < -15 && dx === 0) { dx = -BLOCK_SIZE; dy = 0; }
+        } else {
+            if(deltaY > 15 && dy === 0) { dx = 0; dy = BLOCK_SIZE; }
+            else if(deltaY < -15 && dy === 0) { dx = 0; dy = -BLOCK_SIZE; }
+        }
+        touchStartX = 0; touchStartY = 0;
+    }, { passive: true });
+
+    window.addEventListener('keydown', e => {
+        if(currentGame !== 'snake') return;
+        if((e.key === 'ArrowLeft' || e.key === 'a') && dx === 0) { dx = -BLOCK_SIZE; dy = 0; }
+        else if((e.key === 'ArrowRight' || e.key === 'd') && dx === 0) { dx = BLOCK_SIZE; dy = 0; }
+        else if((e.key === 'ArrowUp' || e.key === 'w') && dy === 0) { dx = 0; dy = -BLOCK_SIZE; }
+        else if((e.key === 'ArrowDown' || e.key === 's') && dy === 0) { dx = 0; dy = BLOCK_SIZE; }
+    });
+</script>
+</body>
+</html>
