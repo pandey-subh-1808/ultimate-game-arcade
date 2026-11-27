@@ -117,7 +117,7 @@ function go(id,title,pause){
   $('#back').classList.toggle('hidden',id==='hub');
   $('#pz').classList.toggle('hidden',!pause);
 }
-function home(){clearInterval(timer);hideOv();cur=null;go('hub','ARCADE HUB');const b=lb()[0];$('#best').textContent=b?`Best: ${b.score} by ${b.name}`:'Eat, grow, don\'t crash'}
+function home(){clearInterval(timer);clearTimeout(aiTimer);hideOv();cur=null;go('hub','ARCADE HUB');const b=lb()[0];$('#best').textContent=b?`Best: ${b.score} by ${b.name}`:'Eat, grow, don\'t crash'}
 function hideOv(){$('#ov').classList.add('hidden')}
 function overlay(o){
   $('#ov').innerHTML=`<div class="ovc"><div class="ico">${o.ico}</div><h2>${o.t}</h2><p>${o.s}</p>${o.b||''}<button class="btn" id="ovp">${o.pl}</button><button class="btn ghost" id="ovq">Back to hub</button></div>`;
@@ -255,7 +255,7 @@ function modeBar(){return '<div class="mode-label">GAME MODE</div><div class="mo
 function bindMode(game){$('[data-mode]').forEach(b=>b.onclick=()=>{clearTimeout(aiTimer);playMode=b.dataset.mode;tally={X:0,O:0,D:0};if(game==='classic')newC();else newMine()})}
 function other(p){return p==='X'?'O':'X'}
 function bestMove(board){let best=-Infinity,choice=-1;function score(b,p,d){const w=win(b);if(w)return w.p==='O'?10-d:d-10;if(b.every(Boolean))return 0;const a=[];for(let i=0;i<9;i++)if(!b[i]){b[i]=p;a.push(score(b,other(p),d+1));b[i]=''}return p==='O'?Math.max(...a):Math.min(...a)}for(let i=0;i<9;i++)if(!board[i]){board[i]='O';const v=score(board,'X',1);board[i]='';if(v>best){best=v;choice=i}}return choice}
-function scheduleClassicAI(){if(!isAI()||C.p!=='O'||C.over||C.aiThinking)return;C.aiThinking=1;aiTimer=setTimeout(()=>{if(!C||C.over||C.p!=='O')return;const i=bestMove(C.b);if(i>=0)C.b[i]='O';C.aiThinking=0;C.w=win(C.b);if(C.w||C.b.every(Boolean)){C.over=1;renderC();end(C.w,newC)}else{C.p='X';renderC()}},450)}
+function scheduleClassicAI(){if(cur!=='ttt'||!isAI()||C.p!=='O'||C.over||C.aiThinking)return;C.aiThinking=1;aiTimer=setTimeout(()=>{if(cur!=='ttt'||!C||C.over||C.p!=='O')return;const i=bestMove(C.b);if(i>=0)C.b[i]='O';C.aiThinking=0;C.w=win(C.b);if(C.w||C.b.every(Boolean)){C.over=1;renderC();end(C.w,newC)}else{C.p='X';renderC()}},450)}
 const tl=()=>`<div class="tally"><div class="mX">X wins ${tally.X}</div><div>Draws ${tally.D}</div><div class="mO">O wins ${tally.O}</div></div>`;
 const cells=(b,w,sm)=>b.map((v,i)=>`<button class="cell ${sm?'sm':''} ${v?'m'+v:''} ${w&&w.l.includes(i)?'win':''}" data-i="${i}">${v}</button>`).join('');
 function end(w,again){
@@ -283,9 +283,9 @@ function renderM(){
  $('#mg').onclick=e=>{const i=e.target.dataset.i;if(i===undefined||M.over||M.st!=='place'||M.b[i]||(isAI()&&M.p!=='X'))return;M.b[i]=M.p;M.w=win(M.b);if(M.w||M.b.every(Boolean)){M.over=1;renderM();end(M.w,newMine);return}M.p=other(M.p);M.st='sweep';if(M.mine.every((v,k)=>v||M.rev[k]))roll();renderM()};
 }
 function scheduleMineAI(){
- if(!isAI()||M.p!=='O'||M.over||M.aiThinking)return;
+ if(cur!=='mine'||!isAI()||M.p!=='O'||M.over||M.aiThinking)return;
  M.aiThinking=1;aiTimer=setTimeout(()=>{
-  if(!M||M.over||M.p!=='O')return;
+  if(cur!=='mine'||!M||M.over||M.p!=='O')return;
   let choices=M.rev.map((r,i)=>r?-1:i).filter(i=>i>=0);if(!choices.length){roll();choices=M.rev.map((r,i)=>r?-1:i).filter(i=>i>=0)}
   const i=choices[Math.random()*choices.length|0];M.rev[i]=1;
   if(M.mine[i]){M.aiThinking=0;M.p='X';M.st='sweep';renderM();return}
