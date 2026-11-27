@@ -61,6 +61,7 @@ canvas{display:block;touch-action:none}
 .cell.sm{font-size:24px}.cell.mX{color:var(--mint)}.cell.mO{color:var(--sun)}
 .cell.win{background:var(--pink);color:#fff;animation:pop .3s}.cell.safe{background:#1d6b55}.cell.boom{background:#8a1c3c;animation:shake .3s}
 @keyframes shake{25%{transform:translateX(-4px)}75%{transform:translateX(4px)}}
+.modebar{display:flex;gap:8px;margin:2px 0 4px}.modebar .chip{flex:1}.mode-label{font-size:11px;color:var(--mute);font-weight:900;text-align:center;margin-bottom:2px}.ai-note{color:var(--cyan);font-size:12px;font-weight:800;text-align:center;min-height:18px}
 @media(prefers-reduced-motion:reduce){*{animation:none!important}}
 </style>
 </head>
@@ -248,7 +249,13 @@ $('#pz').onclick=()=>{
 /* ---------- tic-tac-toe shared ---------- */
 const WL=[[0,1,2],[3,4,5],[6,7,8],[0,3,6],[1,4,7],[2,5,8],[0,4,8],[2,4,6]];
 const win=b=>{for(const l of WL){const[a,c,d]=l;if(b[a]&&b[a]===b[c]&&b[a]===b[d])return{p:b[a],l}}return null};
-let tally={X:0,O:0,D:0},C,M;
+let tally={X:0,O:0,D:0},C,M,playMode='pvp',aiTimer=null;
+const isAI=()=>playMode==='cpu';
+function modeBar(){return '<div class="mode-label">GAME MODE</div><div class="modebar"><button class="chip '+(playMode==='pvp'?'on':'')+'" data-mode="pvp">👥 2 Players</button><button class="chip '+(playMode==='cpu'?'on':'')+'" data-mode="cpu">🤖 vs Computer</button></div><p class="ai-note">'+(isAI()?'You are X · Computer is O':'Pass the device after each turn')+'</p>'}
+function bindMode(game){$('[data-mode]').forEach(b=>b.onclick=()=>{clearTimeout(aiTimer);playMode=b.dataset.mode;tally={X:0,O:0,D:0};if(game==='classic')newC();else newMine()})}
+function other(p){return p==='X'?'O':'X'}
+function bestMove(board){let best=-Infinity,choice=-1;function score(b,p,d){const w=win(b);if(w)return w.p==='O'?10-d:d-10;if(b.every(Boolean))return 0;const a=[];for(let i=0;i<9;i++)if(!b[i]){b[i]=p;a.push(score(b,other(p),d+1));b[i]=''}return p==='O'?Math.max(...a):Math.min(...a)}for(let i=0;i<9;i++)if(!board[i]){board[i]='O';const v=score(board,'X',1);board[i]='';if(v>best){best=v;choice=i}}return choice}
+function scheduleClassicAI(){if(!isAI()||C.p!=='O'||C.over||C.aiThinking)return;C.aiThinking=1;aiTimer=setTimeout(()=>{if(!C||C.over||C.p!=='O')return;const i=bestMove(C.b);if(i>=0)C.b[i]='O';C.aiThinking=0;C.w=win(C.b);if(C.w||C.b.every(Boolean)){C.over=1;renderC();end(C.w,newC)}else{C.p='X';renderC()}},450)}
 const tl=()=>`<div class="tally"><div class="mX">X wins ${tally.X}</div><div>Draws ${tally.D}</div><div class="mO">O wins ${tally.O}</div></div>`;
 const cells=(b,w,sm)=>b.map((v,i)=>`<button class="cell ${sm?'sm':''} ${v?'m'+v:''} ${w&&w.l.includes(i)?'win':''}" data-i="${i}">${v}</button>`).join('');
 function end(w,again){
@@ -257,41 +264,35 @@ function end(w,again){
 }
 
 /* classic */
-function newC(){C={b:Array(9).fill(''),p:'X',over:0,w:null};renderC()}
+function newC(){clearTimeout(aiTimer);C={b:Array(9).fill(''),p:'X',over:0,w:null,aiThinking:0};renderC()}
 function renderC(){
-  $('#tt').innerHTML=`${tl()}<div class="turn"><span class="m${C.p}">${C.p}</span> goes</div><div class="grid" id="cg">${cells(C.b,C.w)}</div><p class="hint">Tap a square to play.</p>`;
-  $('#cg').onclick=e=>{
-    const i=e.target.dataset.i;if(i===undefined||C.over||C.b[i])return;
-    C.b[i]=C.p;C.w=win(C.b);
-    if(C.w||C.b.every(Boolean)){C.over=1;renderC();end(C.w,newC)}else{C.p=C.p==='X'?'O':'X';renderC()}
-  };
+ $('#tt').innerHTML=modeBar()+tl()+'<div class="turn"><span class="m'+C.p+'">'+C.p+'</span> '+(isAI()&&C.p==='O'?'(Computer) thinking…':'goes')+'</div><div class="grid" id="cg">'+cells(C.b,C.w)+'</div><p class="hint">'+(isAI()?'You play X. The computer plays O.':'Tap a square; players alternate X and O.')+'</p><button class="btn ghost" id="restart-c">↻ Restart match</button>';
+ bindMode('classic');$('#restart-c').onclick=()=>{tally={X:0,O:0,D:0};newC()};
+ $('#cg').onclick=e=>{const i=e.target.dataset.i;if(i===undefined||C.over||C.b[i]||C.p!=='X'||(isAI()&&C.aiThinking))return;C.b[i]='X';C.w=win(C.b);if(C.w||C.b.every(Boolean)){C.over=1;renderC();end(C.w,newC)}else{C.p='O';renderC()}};
+ scheduleClassicAI();
 }
-
 /* mine-tac-toe */
-function newMine(){
-  M={mine:Array(9).fill(0),rev:Array(9).fill(0),b:Array(9).fill(''),p:'X',st:'sweep',over:0,w:null};
-  roll();renderM();
-}
+function newMine(){clearTimeout(aiTimer);M={mine:Array(9).fill(0),rev:Array(9).fill(0),b:Array(9).fill(''),p:'X',st:'sweep',over:0,w:null,aiThinking:0};roll();renderM()}
 function roll(){M.mine=Array(9).fill(0);M.rev=Array(9).fill(0);let n=3;while(n){const i=Math.random()*9|0;if(!M.mine[i]){M.mine[i]=1;n--}}}
-function renderM(boom){
-  const sw=M.rev.map((r,i)=>`<button class="cell sm ${r?(M.mine[i]?'boom':'safe'):''}" data-i="${i}">${r?(M.mine[i]?'💣':'✓'):'?'}</button>`).join('');
-  $('#tt').innerHTML=`${tl()}<div class="turn"><span class="m${M.p}">${M.p}</span> goes</div>
-  <div class="zone ${M.st==='sweep'?'on':'dim'}"><h3>Step 1: reveal a cell</h3><div class="grid" id="sg">${sw}</div></div>
-  <div class="zone ${M.st==='place'?'on':'dim'}"><h3>Step 2: place your mark</h3><div class="grid" id="mg">${cells(M.b,M.w,1)}</div></div>
-  <p class="hint">Hit a mine and you lose your turn.</p>`;
-  $('#sg').onclick=e=>{
-    const i=e.target.dataset.i;if(i===undefined||M.over||M.st!=='sweep'||M.rev[i])return;
-    M.rev[i]=1;
-    if(M.mine[i]){renderM();setTimeout(()=>{M.p=M.p==='X'?'O':'X';renderM()},600)}else{M.st='place';renderM()}
-  };
-  $('#mg').onclick=e=>{
-    const i=e.target.dataset.i;if(i===undefined||M.over||M.st!=='place'||M.b[i])return;
-    M.b[i]=M.p;M.w=win(M.b);
-    if(M.w||M.b.every(Boolean)){M.over=1;renderM();end(M.w,newMine);return}
-    M.p=M.p==='X'?'O':'X';M.st='sweep';
-    if(M.mine.every((m,k)=>m||M.rev[k]))roll();
-    renderM();
-  };
+function renderM(){
+ const sw=M.rev.map((r,i)=>'<button class="cell sm '+(r?(M.mine[i]?'boom':'safe'):'')+'" data-i="'+i+'">'+(r?(M.mine[i]?'💣':'✓'):'?')+'</button>').join('');
+ $('#tt').innerHTML=modeBar()+tl()+'<div class="turn"><span class="m'+M.p+'">'+M.p+'</span> '+(isAI()&&M.p==='O'?'(Computer) thinking…':'goes')+'</div><div class="zone '+(M.st==='sweep'?'on':'dim')+'"><h3>Step 1: reveal a cell</h3><div class="grid" id="sg">'+sw+'</div></div><div class="zone '+(M.st==='place'?'on':'dim')+'"><h3>Step 2: place your mark</h3><div class="grid" id="mg">'+cells(M.b,M.w,1)+'</div></div><p class="hint">'+(isAI()?'You are X. Computer is O. Hit a mine and lose your turn.':'Hit a mine and you lose your turn.')+'</p><button class="btn ghost" id="restart-m">↻ Restart match</button>';
+ bindMode('mine');$('#restart-m').onclick=()=>{tally={X:0,O:0,D:0};newMine()};
+ if(isAI()&&M.p==='O'&&!M.over&&!M.aiThinking)scheduleMineAI();
+ $('#sg').onclick=e=>{const i=e.target.dataset.i;if(i===undefined||M.over||M.st!=='sweep'||M.rev[i]||M.p!=='X')return;M.rev[i]=1;if(M.mine[i]){renderM();setTimeout(()=>{if(!M||M.over)return;M.p=other(M.p);M.st='sweep';renderM()},600)}else{M.st='place';renderM()}};
+ $('#mg').onclick=e=>{const i=e.target.dataset.i;if(i===undefined||M.over||M.st!=='place'||M.b[i]||M.p!=='X')return;M.b[i]='X';M.w=win(M.b);if(M.w||M.b.every(Boolean)){M.over=1;renderM();end(M.w,newMine);return}M.p='O';M.st='sweep';if(M.mine.every((v,k)=>v||M.rev[k]))roll();renderM()};
+}
+function scheduleMineAI(){
+ if(!isAI()||M.p!=='O'||M.over||M.aiThinking)return;
+ M.aiThinking=1;aiTimer=setTimeout(()=>{
+  if(!M||M.over||M.p!=='O')return;
+  let choices=M.rev.map((r,i)=>r?-1:i).filter(i=>i>=0);if(!choices.length){roll();choices=M.rev.map((r,i)=>r?-1:i).filter(i=>i>=0)}
+  const i=choices[Math.random()*choices.length|0];M.rev[i]=1;
+  if(M.mine[i]){M.aiThinking=0;M.p='X';M.st='sweep';renderM();return}
+  const move=bestMove(M.b);if(move>=0)M.b[move]='O';M.w=win(M.b);M.aiThinking=0;
+  if(M.w||M.b.every(Boolean)){M.over=1;renderM();end(M.w,newMine);return}
+  M.p='X';M.st='sweep';if(M.mine.every((v,k)=>v||M.rev[k]))roll();renderM();
+ },650);
 }
 
 /* ---------- input ---------- */
